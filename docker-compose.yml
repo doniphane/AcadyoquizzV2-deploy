@@ -72,7 +72,7 @@ services:
       HIDE_PHP_VERSION: true
       UPLOAD_LIMIT: 50M
     ports:
-      - "8080:80"  # Accessible depuis l'extérieur
+      - "8082:80"  # Accessible depuis l'extérieur
     depends_on:
       - db
     networks:
