@@ -1,0 +1,86 @@
+version: "3.9"
+
+services:
+  frontend:
+    build: ./ReactacadyoQuizz
+    container_name: react-frontend
+    ports:
+      - "5173:80" 
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+  backend:
+    build: 
+      context:  ./Symfony-acadyoquizz
+      args:
+       APP_ENV: prod
+    container_name: symfony-backend
+    ports:
+      - "8000:80" 
+    environment:
+      APP_ENV: prod
+      DATABASE_URL: mysql://root:root@db:3306/Acadyoquiz3
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - app-network
+    command: >
+      sh -c "
+        echo '🚀 Setting up Symfony backend...' &&
+        php bin/console doctrine:database:create --if-not-exists --no-interaction &&
+        echo '📋 Syncing migration versions (safe operation)...' &&
+        php bin/console doctrine:migrations:version --add --all --no-interaction 2>/dev/null || true &&
+        echo '📦 Running any pending migrations...' &&
+        php bin/console doctrine:migrations:migrate --no-interaction 2>/dev/null || true &&
+        echo '✅ Database setup complete! Starting Apache...' &&
+        apache2-foreground
+      "
+
+  db:
+    image: mysql:8
+    container_name: mysql-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: Acadyoquiz3
+      MYSQL_USER: acadyouser
+      MYSQL_PASSWORD: acadyo123
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./mysql-init:/docker-entrypoint-initdb.d
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      timeout: 20s
+      retries: 10
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: phpmyadmin
+    restart: always
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      # Pas d'utilisateur par défaut - connexion manuelle requise
+      PMA_ARBITRARY: 1
+      MYSQL_ROOT_PASSWORD: root
+      # Configuration sécurisée
+      HIDE_PHP_VERSION: true
+      UPLOAD_LIMIT: 50M
+    ports:
+      - "8080:80"  # Accessible depuis l'extérieur
+    depends_on:
+      - db
+    networks:
+      - app-network
+
+volumes:
+  db_data:
+
+networks:
+  app-network:
+    driver: bridge
