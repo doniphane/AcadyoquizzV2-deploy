@@ -22,6 +22,30 @@ class QuestionnaireRepository extends ServiceEntityRepository
     }
 
     /**
+     * Sauvegarde un questionnaire
+     */
+    public function save(Questionnaire $entity, bool $flush = false): void
+    {
+        $this->getEntityManager()->persist($entity);
+
+        if ($flush) {
+            $this->getEntityManager()->flush();
+        }
+    }
+
+    /**
+     * Supprime un questionnaire
+     */
+    public function remove(Questionnaire $entity, bool $flush = false): void
+    {
+        $this->getEntityManager()->remove($entity);
+
+        if ($flush) {
+            $this->getEntityManager()->flush();
+        }
+    }
+
+    /**
      * Trouve les questionnaires avec leurs questions (optimisé avec jointure)
      */
     public function findWithQuestions(): array
@@ -32,6 +56,77 @@ class QuestionnaireRepository extends ServiceEntityRepository
             ->orderBy('q.dateCreation', 'DESC')
             ->getQuery()
             ->getResult();
+    }
+
+    /**
+     * Trouve un questionnaire par son code d'accès
+     */
+    public function findByCodeAcces(string $code): ?Questionnaire
+    {
+        return $this->createQueryBuilder('q')
+            ->where('q.codeAcces = :code')
+            ->setParameter('code', strtoupper($code))
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
+    /**
+     * Trouve les questionnaires actifs
+     */
+    public function findActifs(): array
+    {
+        return $this->createQueryBuilder('q')
+            ->where('q.estActif = true')
+            ->orderBy('q.dateCreation', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Trouve les questionnaires démarrés
+     */
+    public function findDemarres(): array
+    {
+        return $this->createQueryBuilder('q')
+            ->where('q.estDemarre = true')
+            ->orderBy('q.dateCreation', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Trouve les questionnaires d'un utilisateur par son ID
+     */
+    public function findByUtilisateur(int $userId): array
+    {
+        return $this->createQueryBuilder('q')
+            ->join('q.creePar', 'u')
+            ->where('u.id = :userId')
+            ->setParameter('userId', $userId)
+            ->orderBy('q.dateCreation', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Trouve les questionnaires créés par un utilisateur
+     */
+    public function findByCreator($user): array
+    {
+        return $this->createQueryBuilder('q')
+            ->where('q.creePar = :user')
+            ->setParameter('user', $user)
+            ->orderBy('q.dateCreation', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Trouve tous les questionnaires actifs
+     */
+    public function findActiveQuizzes(): array
+    {
+        return $this->findActifs(); // Réutilise la méthode existante
     }
 
     /**

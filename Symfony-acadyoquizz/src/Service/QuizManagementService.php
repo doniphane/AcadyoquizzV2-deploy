@@ -42,10 +42,12 @@ class QuizManagementService
     public function createQuiz(array $data, Utilisateur $creator): array
     {
         $questionnaire = new Questionnaire();
-        $questionnaire->setTitre($data['titre'] ?? '');
+
+        // Support des clés françaises et anglaises
+        $questionnaire->setTitre($data['titre'] ?? $data['title'] ?? '');
         $questionnaire->setDescription($data['description'] ?? '');
-        $questionnaire->setEstActif($data['estActif'] ?? true);
-        $questionnaire->setEstDemarre($data['estDemarre'] ?? false);
+        $questionnaire->setEstActif($data['estActif'] ?? $data['isActive'] ?? true);
+        $questionnaire->setEstDemarre($data['estDemarre'] ?? $data['isStarted'] ?? false);
         $questionnaire->setScorePassage($data['scorePassage'] ?? 50);
         $questionnaire->setCreePar($creator);
         $questionnaire->setDateCreation(new \DateTimeImmutable());
@@ -74,17 +76,18 @@ class QuizManagementService
      */
     public function updateQuiz(Questionnaire $questionnaire, array $data): array
     {
-        if (isset($data['titre'])) {
-            $questionnaire->setTitre($data['titre']);
+        // Support des clés françaises et anglaises
+        if (isset($data['titre']) || isset($data['title'])) {
+            $questionnaire->setTitre($data['titre'] ?? $data['title']);
         }
         if (isset($data['description'])) {
             $questionnaire->setDescription($data['description']);
         }
-        if (isset($data['estActif'])) {
-            $questionnaire->setEstActif($data['estActif']);
+        if (isset($data['estActif']) || isset($data['isActive'])) {
+            $questionnaire->setEstActif($data['estActif'] ?? $data['isActive']);
         }
-        if (isset($data['estDemarre'])) {
-            $questionnaire->setEstDemarre($data['estDemarre']);
+        if (isset($data['estDemarre']) || isset($data['isStarted'])) {
+            $questionnaire->setEstDemarre($data['estDemarre'] ?? $data['isStarted']);
         }
         if (isset($data['scorePassage'])) {
             $questionnaire->setScorePassage($data['scorePassage']);

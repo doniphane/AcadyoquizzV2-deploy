@@ -23,11 +23,14 @@ use App\Entity\Questionnaire;
 use App\Entity\Utilisateur;
 use App\Repository\QuestionnaireRepository;
 use App\Tests\Fixtures\QuestionnaireTestFixtures;
+use App\Tests\DatabaseTestTrait;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 class QuestionnaireRepositoryTest extends KernelTestCase
 {
+    use DatabaseTestTrait;
+
     private EntityManagerInterface $entityManager;
     private QuestionnaireRepository $repository;
     private QuestionnaireTestFixtures $fixtures;
@@ -45,18 +48,20 @@ class QuestionnaireRepositoryTest extends KernelTestCase
         assert($repository instanceof QuestionnaireRepository);
         $this->repository = $repository;
 
-        // Initialiser les fixtures
-        $this->fixtures = new QuestionnaireTestFixtures($this->entityManager);
+        // Nettoyer la base de données AVANT d'initialiser les fixtures
+        // pour éviter les conflits avec les DataFixtures d'AppFixtures
+        $this->clearDatabase($this->entityManager);
+        $this->resetAutoIncrement($this->entityManager);
 
-        // Nettoyer la base avant de charger les fixtures
-        $this->fixtures->clearFixtures();
+        // Initialiser les fixtures de test
+        $this->fixtures = new QuestionnaireTestFixtures($this->entityManager);
     }
 
     protected function tearDown(): void
     {
         parent::tearDown();
 
-        // Nettoyer les fixtures
+        // Nettoyer les fixtures après chaque test
         if (isset($this->fixtures)) {
             $this->fixtures->clearFixtures();
         }

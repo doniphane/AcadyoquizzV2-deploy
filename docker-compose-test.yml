@@ -3,15 +3,15 @@ version: "3.9"
 services:
   backend:
     build: 
-      context:  ./Symfony-acadyoquizz
+      context: ./Symfony-acadyoquizz
       args:
-       APP_ENV: test
+        APP_ENV: test
     container_name: symfony-backend-test
     ports:
-      - "8000:80" 
+      - "8000:80"
     environment:
       APP_ENV: test
-      DATABASE_URL: mysql://root:root@db-test:3306/Acadyoquiz_test
+      DATABASE_URL: mysql://root:root@db-test:3306/Acadyoquiz_test_db
     depends_on:
       db-test:
         condition: service_healthy
@@ -21,6 +21,7 @@ services:
       sh -c "
         echo '🚀 Setting up Symfony backend for testing...' &&
         composer require doctrine/doctrine-fixtures-bundle --dev &&
+        chmod -R 777 /var/www/html/var/cache &&
         php bin/console doctrine:database:create --if-not-exists --no-interaction &&
         echo '📋 Syncing migration versions (safe operation)...' &&
         php bin/console doctrine:migrations:version --add --all --no-interaction 2>/dev/null || true &&
@@ -29,9 +30,9 @@ services:
         echo '📂 Loading fixtures...' &&
         php bin/console doctrine:fixtures:load --no-interaction &&
         echo '✅ Database setup complete! Running tests...' &&
-        php bin/phpunit &&
+        php bin/phpunit --configuration phpunit.dist.xml &&
         echo '✅ Tests completed!' &&
-        echo '✅ Database setup complete! Starting Apache...' &&
+        echo '✅ Starting Apache for post-test inspection...' &&
         apache2-foreground
       "
 
@@ -41,7 +42,7 @@ services:
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: Acadyoquiz_test
+      MYSQL_DATABASE: Acadyoquiz_test_db
       MYSQL_USER: testuser
       MYSQL_PASSWORD: testpassword
     volumes:
