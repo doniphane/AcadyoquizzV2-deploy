@@ -21,58 +21,8 @@ class QuestionnaireRepository extends ServiceEntityRepository
         parent::__construct($registry, Questionnaire::class);
     }
 
-    public function save(Questionnaire $entity, bool $flush = false): void
-    {
-        $this->getEntityManager()->persist($entity);
-
-        if ($flush) {
-            $this->getEntityManager()->flush();
-        }
-    }
-
-    public function remove(Questionnaire $entity, bool $flush = false): void
-    {
-        $this->getEntityManager()->remove($entity);
-
-        if ($flush) {
-            $this->getEntityManager()->flush();
-        }
-    }
-
     /**
-     * Trouve un questionnaire par son code d'accès
-     */
-    public function findByCodeAcces(string $codeAcces): ?Questionnaire
-    {
-        return $this->findOneBy(['codeAcces' => $codeAcces]);
-    }
-
-    /**
-     * Trouve tous les questionnaires actifs
-     */
-    public function findActifs(): array
-    {
-        return $this->findBy(['estActif' => true]);
-    }
-
-    /**
-     * Trouve tous les questionnaires démarrés
-     */
-    public function findDemarres(): array
-    {
-        return $this->findBy(['estDemarre' => true]);
-    }
-
-    /**
-     * Trouve tous les questionnaires créés par un utilisateur spécifique
-     */
-    public function findByUtilisateur(int $utilisateurId): array
-    {
-        return $this->findBy(['creePar' => $utilisateurId]);
-    }
-
-    /**
-     * Trouve les questionnaires avec leurs questions
+     * Trouve les questionnaires avec leurs questions (optimisé avec jointure)
      */
     public function findWithQuestions(): array
     {
@@ -82,14 +32,6 @@ class QuestionnaireRepository extends ServiceEntityRepository
             ->orderBy('q.dateCreation', 'DESC')
             ->getQuery()
             ->getResult();
-    }
-
-    /**
-     * Trouve les questionnaires créés par un utilisateur
-     */
-    public function findByCreator($user): array
-    {
-        return $this->findBy(['creePar' => $user], ['dateCreation' => 'DESC']);
     }
 
     /**
@@ -104,18 +46,6 @@ class QuestionnaireRepository extends ServiceEntityRepository
             ->setParameter('user', $user)
             ->getQuery()
             ->getOneOrNullResult();
-    }
-
-    /**
-     * Trouve tous les questionnaires actifs disponibles pour jouer
-     */
-    public function findActiveQuizzes(): array
-    {
-        return $this->createQueryBuilder('q')
-            ->where('q.estActif = true')
-            ->orderBy('q.dateCreation', 'DESC')
-            ->getQuery()
-            ->getResult();
     }
 
     /**

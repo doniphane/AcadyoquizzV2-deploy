@@ -21,24 +21,6 @@ class ReponseUtilisateurRepository extends ServiceEntityRepository
         parent::__construct($registry, ReponseUtilisateur::class);
     }
 
-    public function save(ReponseUtilisateur $entity, bool $flush = false): void
-    {
-        $this->getEntityManager()->persist($entity);
-
-        if ($flush) {
-            $this->getEntityManager()->flush();
-        }
-    }
-
-    public function remove(ReponseUtilisateur $entity, bool $flush = false): void
-    {
-        $this->getEntityManager()->remove($entity);
-
-        if ($flush) {
-            $this->getEntityManager()->flush();
-        }
-    }
-
     /**
      * Trouve toutes les réponses d'une tentative spécifique
      */

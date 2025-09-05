@@ -21,24 +21,6 @@ class TentativeQuestionnaireRepository extends ServiceEntityRepository
         parent::__construct($registry, TentativeQuestionnaire::class);
     }
 
-    public function save(TentativeQuestionnaire $entity, bool $flush = false): void
-    {
-        $this->getEntityManager()->persist($entity);
-
-        if ($flush) {
-            $this->getEntityManager()->flush();
-        }
-    }
-
-    public function remove(TentativeQuestionnaire $entity, bool $flush = false): void
-    {
-        $this->getEntityManager()->remove($entity);
-
-        if ($flush) {
-            $this->getEntityManager()->flush();
-        }
-    }
-
     /**
      * Trouve toutes les tentatives d'un questionnaire spécifique
      */

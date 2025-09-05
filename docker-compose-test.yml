@@ -1,0 +1,61 @@
+version: "3.9"
+
+services:
+  backend:
+    build: 
+      context:  ./Symfony-acadyoquizz
+      args:
+       APP_ENV: test
+    container_name: symfony-backend-test
+    ports:
+      - "8000:80" 
+    environment:
+      APP_ENV: test
+      DATABASE_URL: mysql://root:root@db-test:3306/Acadyoquiz_test
+    depends_on:
+      db-test:
+        condition: service_healthy
+    networks:
+      - app-network
+    command: >
+      sh -c "
+        echo '🚀 Setting up Symfony backend for testing...' &&
+        composer require doctrine/doctrine-fixtures-bundle --dev &&
+        php bin/console doctrine:database:create --if-not-exists --no-interaction &&
+        echo '📋 Syncing migration versions (safe operation)...' &&
+        php bin/console doctrine:migrations:version --add --all --no-interaction 2>/dev/null || true &&
+        echo '📦 Running any pending migrations...' &&
+        php bin/console doctrine:migrations:migrate --no-interaction 2>/dev/null || true &&
+        echo '📂 Loading fixtures...' &&
+        php bin/console doctrine:fixtures:load --no-interaction &&
+        echo '✅ Database setup complete! Running tests...' &&
+        php bin/phpunit &&
+        echo '✅ Tests completed!' &&
+        echo '✅ Database setup complete! Starting Apache...' &&
+        apache2-foreground
+      "
+
+  db-test:
+    image: mysql:8
+    container_name: mysql-db-test
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: Acadyoquiz_test
+      MYSQL_USER: testuser
+      MYSQL_PASSWORD: testpassword
+    volumes:
+      - db_test_data:/var/lib/mysql
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      timeout: 20s
+      retries: 10
+
+volumes:
+  db_test_data:
+
+networks:
+  app-network:
+    driver: bridge
