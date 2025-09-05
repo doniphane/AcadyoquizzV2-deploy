@@ -24,6 +24,7 @@ use App\Entity\TentativeQuestionnaire;
 use App\Repository\QuestionnaireRepository;
 use App\Repository\TentativeQuestionnaireRepository;
 use App\Service\QuizManagementService;
+use App\Tests\DatabaseTestTrait;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
@@ -32,6 +33,8 @@ use Symfony\Component\Validator\ConstraintViolation;
 
 class QuizManagementServiceTest extends KernelTestCase
 {
+    use DatabaseTestTrait;
+
     private EntityManagerInterface $entityManager;
     private QuizManagementService $service;
     private QuestionnaireRepository $questionnaireRepository;
@@ -45,6 +48,10 @@ class QuizManagementServiceTest extends KernelTestCase
         $container = $kernel->getContainer();
 
         $this->entityManager = $container->get('doctrine')->getManager();
+
+        // Nettoyer la base de données au début de chaque test
+        $this->clearDatabase($this->entityManager);
+        $this->resetAutoIncrement($this->entityManager);
 
         $repository = $this->entityManager->getRepository(Questionnaire::class);
         assert($repository instanceof QuestionnaireRepository);

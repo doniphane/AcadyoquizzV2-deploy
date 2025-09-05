@@ -25,7 +25,7 @@ class QuizManagementService
      */
     public function getUserQuizzes(Utilisateur $user): array
     {
-        return $this->questionnaireRepository->findByCreator($user);
+        return $this->questionnaireRepository->findBy(['creePar' => $user]);
     }
 
     /**
@@ -42,10 +42,12 @@ class QuizManagementService
     public function createQuiz(array $data, Utilisateur $creator): array
     {
         $questionnaire = new Questionnaire();
-        $questionnaire->setTitre($data['title'] ?? '');
+
+        // Support des clés françaises et anglaises
+        $questionnaire->setTitre($data['titre'] ?? $data['title'] ?? '');
         $questionnaire->setDescription($data['description'] ?? '');
-        $questionnaire->setEstActif($data['isActive'] ?? true);
-        $questionnaire->setEstDemarre($data['isStarted'] ?? false);
+        $questionnaire->setEstActif($data['estActif'] ?? $data['isActive'] ?? true);
+        $questionnaire->setEstDemarre($data['estDemarre'] ?? $data['isStarted'] ?? false);
         $questionnaire->setScorePassage($data['scorePassage'] ?? 50);
         $questionnaire->setCreePar($creator);
         $questionnaire->setDateCreation(new \DateTimeImmutable());
@@ -74,17 +76,18 @@ class QuizManagementService
      */
     public function updateQuiz(Questionnaire $questionnaire, array $data): array
     {
-        if (isset($data['title'])) {
-            $questionnaire->setTitre($data['title']);
+        // Support des clés françaises et anglaises
+        if (isset($data['titre']) || isset($data['title'])) {
+            $questionnaire->setTitre($data['titre'] ?? $data['title']);
         }
         if (isset($data['description'])) {
             $questionnaire->setDescription($data['description']);
         }
-        if (isset($data['isActive'])) {
-            $questionnaire->setEstActif($data['isActive']);
+        if (isset($data['estActif']) || isset($data['isActive'])) {
+            $questionnaire->setEstActif($data['estActif'] ?? $data['isActive']);
         }
-        if (isset($data['isStarted'])) {
-            $questionnaire->setEstDemarre($data['isStarted']);
+        if (isset($data['estDemarre']) || isset($data['isStarted'])) {
+            $questionnaire->setEstDemarre($data['estDemarre'] ?? $data['isStarted']);
         }
         if (isset($data['scorePassage'])) {
             $questionnaire->setScorePassage($data['scorePassage']);
@@ -121,7 +124,7 @@ class QuizManagementService
     {
         $questionnaire->setEstActif(!$questionnaire->isActive());
         $this->entityManager->flush();
-        
+
         return $questionnaire;
     }
 
@@ -132,14 +135,14 @@ class QuizManagementService
     {
         $data = [
             'id' => $questionnaire->getId(),
-            'title' => $questionnaire->getTitre(),
+            'titre' => $questionnaire->getTitre(),
             'description' => $questionnaire->getDescription(),
-            'accessCode' => $questionnaire->getCodeAcces(),
-            'isActive' => $questionnaire->isActive(),
-            'isStarted' => $questionnaire->isStarted(),
+            'codeAcces' => $questionnaire->getCodeAcces(),
+            'estActif' => $questionnaire->isActive(),
+            'estDemarre' => $questionnaire->isStarted(),
             'scorePassage' => $questionnaire->getScorePassage(),
-            'createdAt' => $questionnaire->getDateCreation()?->format('c'),
-            'questionsCount' => $questionnaire->getQuestions()->count(),
+            'dateCreation' => $questionnaire->getDateCreation()?->format('c'),
+            'nbQuestions' => $questionnaire->getQuestions()->count(),
         ];
 
         if ($includeQuestions) {
@@ -177,7 +180,7 @@ class QuizManagementService
     public function getQuizAttempts(Questionnaire $questionnaire): array
     {
         $attempts = $this->tentativeRepository->findBy(
-            ['questionnaire' => $questionnaire], 
+            ['questionnaire' => $questionnaire],
             ['dateDebut' => 'DESC']
         );
 
