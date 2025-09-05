@@ -34,6 +34,14 @@ class QuizManagementControllerTest extends WebTestCase
         parent::setUp();
         $this->client = static::createClient();
         $this->entityManager = $this->client->getContainer()->get('doctrine')->getManager();
+
+        // Charger les fixtures AppFixtures
+        $loader = new \Doctrine\Common\DataFixtures\Loader();
+        $loader->addFixture(new \App\DataFixtures\AppFixtures());
+        $purger = new \Doctrine\Common\DataFixtures\Purger\ORMPurger($this->entityManager);
+        $executor = new \Doctrine\Common\DataFixtures\Executor\ORMExecutor($this->entityManager, $purger);
+        $executor->purge();
+        $executor->execute($loader->getFixtures());
     }
 
     protected function tearDown(): void
