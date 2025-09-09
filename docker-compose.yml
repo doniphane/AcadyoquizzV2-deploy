@@ -29,13 +29,13 @@ services:
       - app-network
     command: >
       sh -c "
-        echo '🚀 Setting up Symfony backend...' &&
+        echo ' Setting up Symfony backend...' &&
         php bin/console doctrine:database:create --if-not-exists --no-interaction &&
-        echo '📋 Syncing migration versions (safe operation)...' &&
+        echo ' Syncing migration versions (safe operation)...' &&
         php bin/console doctrine:migrations:version --add --all --no-interaction 2>/dev/null || true &&
-        echo '📦 Running any pending migrations...' &&
+        echo ' Running any pending migrations...' &&
         php bin/console doctrine:migrations:migrate --no-interaction 2>/dev/null || true &&
-        echo '✅ Database setup complete! Starting Apache...' &&
+        echo ' Database setup complete! Starting Apache...' &&
         apache2-foreground
       "
 
@@ -65,14 +65,13 @@ services:
     environment:
       PMA_HOST: db
       PMA_PORT: 3306
-      # Pas d'utilisateur par défaut - connexion manuelle requise
       PMA_ARBITRARY: 1
       MYSQL_ROOT_PASSWORD: root
       # Configuration sécurisée
       HIDE_PHP_VERSION: true
       UPLOAD_LIMIT: 50M
     ports:
-      - "8082:80"  # Accessible depuis l'extérieur
+      - "8082:80"  
     depends_on:
       - db
     networks:

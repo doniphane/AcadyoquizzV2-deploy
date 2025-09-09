@@ -95,44 +95,6 @@ export interface EditQuestionFormProps {
   onCancel: () => void;
 }
 
-// Types pour TakeQuizPage
-export interface TakeQuizLocationState {
-  participantData: {
-    firstName: string;
-    lastName: string;
-  };
-  quizInfo: {
-    id: number;
-    title: string;
-    titre?: string; 
-    description?: string;
-    accessCode: string;
-    scorePassage?: number;
-  };
-}
-
-export interface TakeQuizQuestion {
-  id: number;
-  text: string;
-  order: number;
-  answers: TakeQuizAnswer[];
-  isMultipleChoice: boolean;
-}
-
-export interface TakeQuizAnswer {
-  id: number;
-  text: string;
-  isCorrect: boolean;
-}
-
-export interface TakeQuizResults {
-  score: number;
-  maxScore: number;
-  percentage: number;
-  passed: boolean;
-  totalQuestions: number;
-}
-
 // Types pour les pages
 export interface LocationState {
   from?: unknown;
@@ -154,40 +116,6 @@ export interface QuizInfo {
   accessCode: string;
   scorePassage?: number;
   questions?: unknown[];
-}
-
-export interface CreateQuizFormData {
-  title: string;
-  description: string;
-}
-
-export interface QuizDataToSend {
-  title: string;
-  description: string;
-  estActif: boolean;
-  estDemarre: boolean;
-  scorePassage: number;
-}
-
-export interface QuizResponse {
-  id: number;
-  title: string;
-  description: string;
-  accessCode: string;
-  uniqueCode: string;
-  isActive: boolean;
-  isStarted: boolean;
-  scorePassage: number;
-  createdAt: string;
-}
-
-export interface ValidationViolation {
-  message: string;
-}
-
-export interface ServerErrorData {
-  violations?: ValidationViolation[];
-  detail?: string;
 }
 
 // Types pour la gestion des questions
@@ -315,15 +243,6 @@ export interface AttemptDetail {
 
 export type AttemptWithNames = TransformedAttempt & { prenomParticipant?: string; nomParticipant?: string };
 
-// Types pour l'administration
-export interface AdminMetrics {
-  quizzesCreated: number;
-  totalAttempts: number;
-  registeredUsers: number;
-}
-
-export type LoadingQuizId = number | null;
-
 // Types pour l'IA
 export interface AIQuestionResponse {
   question: string;
@@ -398,22 +317,30 @@ export interface UserAnswerDetail {
   isCorrect: boolean;
 }
 
-// Types pour la gestion des questions
-export interface ApiQuestion {
-  id?: number;
-  texte: string;
-  numeroOrdre: number;
-  questionnaire: number;
-  isMultipleChoice?: boolean;
-  reponses: ApiAnswerData[];
-}
-
 export interface AddQuestionFormData {
   text: string;
   answers: {
     text: string;
     correct: boolean;
   }[];
+}
+
+// Types manquants pour les composants
+export interface ApiQuestion {
+  id: number;
+  texte: string;
+  numeroOrdre: number;
+  questionnaire: number;
+  reponses: ApiAnswerData[];
+  isMultipleChoice?: boolean;
+}
+
+export interface MetricsDashboardProps {
+  metrics: {
+    quizzesCreated: number;
+    totalAttempts: number;
+    registeredUsers: number;
+  };
 }
 
 // Types pour les composants
@@ -423,10 +350,6 @@ export interface ListeQuizProps {
   loadingQuizId: number | null;
   onToggleStatus: (quizId: number, currentStatus: boolean) => Promise<void>;
   onDeleteQuiz: (quizId: number, quizTitre: string) => Promise<void>;
-}
-
-export interface MetricsDashboardProps {
-  metrics: AdminMetrics;
 }
 
 export interface QuizMetricsProps {

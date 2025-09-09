@@ -1,224 +1,171 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Plus, LogOut, User, Menu, X } from "lucide-react";
 import AuthService from "../services/AuthService";
 import toast from "react-hot-toast";
 import { ListeQuiz, MetricsDashboard } from "../components";
-import type { Quiz, AdminMetrics, LoadingQuizId } from "../types";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
+interface SimpleQuiz {
+  id: number;
+  title: string;
+  isActive: boolean;
+  accessCode: string;
+  isStarted: boolean;
+}
+
+interface Metrics {
+  quizzesCreated: number;
+  totalAttempts: number;
+  registeredUsers: number;
+}
+
 function AdminPage() {
   const navigate = useNavigate();
-  
-  // États
-  const [quizzes, setQuizzes] = useState<Quiz[]>([]);
+  const [quizzes, setQuizzes] = useState<SimpleQuiz[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadingQuizId, setLoadingQuizId] = useState<LoadingQuizId>(null);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [metrics, setMetrics] = useState<AdminMetrics>({
+  const [loadingQuizId, setLoadingQuizId] = useState<number | null>(null);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [metrics, setMetrics] = useState<Metrics>({
     quizzesCreated: 0,
     totalAttempts: 0,
-    registeredUsers: 0, 
+    registeredUsers: 0
   });
-  
-  const getToken = useCallback((): string | null => {
+
+  const makeApiCall = async (url: string, method = 'GET', body = null) => {
     const token = AuthService.getToken();
     if (!token) {
       toast.error("Vous devez être connecté");
       navigate("/login");
       return null;
     }
-    return token;
-  }, [navigate]);
 
-  const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
+    const response = await fetch(url, {
+      method,
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: body ? JSON.stringify(body) : null
+    });
+
+    return response;
   };
 
-  const handleLogout = async (): Promise<void> => {
-    try {
-      await AuthService.logout();
-      navigate("/login");
-    } catch {
-      navigate("/login");
-    }
+  const logout = async () => {
+    await AuthService.logout();
+    navigate("/login");
   };
 
-  const fetchQuizzes = useCallback(async (): Promise<void> => {
-    try {
-      setLoading(true);
-      const token = getToken();
-      if (!token) return;
-
-      const response = await fetch(`${API_BASE_URL}/api/quizzes`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data: Quiz[] = await response.json();
+  const loadQuizzes = async () => {
+    setLoading(true);
+    const response = await makeApiCall(`${API_BASE_URL}/api/quizzes`);
+    
+    if (response && response.ok) {
+      const data = await response.json();
       setQuizzes(data);
-      setMetrics(prev => ({
-        ...prev,
-        quizzesCreated: data.length
-      }));
-    } catch (error) {
-      console.error('Erreur lors du chargement des quiz:', error);
+      setMetrics(prev => ({ ...prev, quizzesCreated: data.length }));
+    } else {
       toast.error("Erreur lors du chargement des quiz");
-    } finally {
-      setLoading(false);
     }
-  }, [getToken]);
+    
+    setLoading(false);
+  };
 
-  const toggleQuizStatus = async (quizId: number, currentStatus: boolean): Promise<void> => {
-    try {
-      setLoadingQuizId(quizId);
-      const token = getToken();
-      if (!token) return;
-
-      const response = await fetch(`${API_BASE_URL}/api/quizzes/${quizId}/toggle-status`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      setQuizzes(
-        quizzes.map((quiz) =>
-          quiz.id === quizId ? { ...quiz, isActive: !currentStatus } : quiz
-        )
-      );
-      
+  const toggleQuizStatus = async (quizId: number, currentStatus: boolean) => {
+    setLoadingQuizId(quizId);
+    const response = await makeApiCall(`${API_BASE_URL}/api/quizzes/${quizId}/toggle-status`, 'PATCH');
+    
+    if (response && response.ok) {
+      setQuizzes(quizzes.map(quiz => 
+        quiz.id === quizId ? { ...quiz, isActive: !currentStatus } : quiz
+      ));
       toast.success(!currentStatus ? "Quiz activé" : "Quiz désactivé");
-    } catch (error) {
-      console.error('Erreur lors de la mise à jour:', error);
+    } else {
       toast.error("Erreur lors de la mise à jour");
-    } finally {
-      setLoadingQuizId(null);
     }
+    
+    setLoadingQuizId(null);
   };
 
-  const deleteQuiz = async (quizId: number, quizTitre: string): Promise<void> => {
-    if (!window.confirm(`Supprimer le quiz "${quizTitre}" ?`)) {
-      return;
-    }
+  const deleteQuiz = async (quizId: number, quizTitre: string) => {
+    if (!window.confirm(`Supprimer le quiz "${quizTitre}" ?`)) return;
 
-    try {
-      setLoadingQuizId(quizId);
-      const token = getToken();
-      if (!token) return;
-
-      const response = await fetch(`${API_BASE_URL}/api/quizzes/${quizId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      setQuizzes(quizzes.filter((quiz) => quiz.id !== quizId));
+    setLoadingQuizId(quizId);
+    const response = await makeApiCall(`${API_BASE_URL}/api/quizzes/${quizId}`, 'DELETE');
+    
+    if (response && response.ok) {
+      setQuizzes(quizzes.filter(quiz => quiz.id !== quizId));
       toast.success("Quiz supprimé");
-    } catch (error) {
-      console.error('Erreur lors de la suppression:', error);
+    } else {
       toast.error("Erreur lors de la suppression");
-    } finally {
-      setLoadingQuizId(null);
     }
-  };
-
-  const ActionButtons = ({ isFullWidth = false }) => (
-    <>
-      <Button
-        onClick={() => navigate("/create-quiz")}
-        className={`bg-white hover:bg-gray-100 text-gray-900 border border-gray-300 px-6 py-3 ${
-          isFullWidth ? 'w-full' : ''
-        }`}
-      >
-        <Plus className="w-4 h-4 mr-2" />
-        Créer un quiz
-      </Button>
-      <Button
-        onClick={() => navigate("/student")}
-        className={`bg-white hover:bg-gray-100 text-gray-900 border border-gray-300 px-6 py-3 ${
-          isFullWidth ? 'w-full' : ''
-        }`}
-      >
-        <User className="w-4 h-4 mr-2" />
-        Espace Élève
-      </Button>
-      <Button
-        onClick={handleLogout}
-        className={`bg-white hover:bg-gray-100 text-gray-900 border border-gray-300 px-6 py-3 ${
-          isFullWidth ? 'w-full' : ''
-        }`}
-      >
-        <LogOut className="w-4 h-4 mr-2" />
-        Déconnexion
-      </Button>
-    </>
-  );
-
-  const Header = () => (
-    <div className="flex justify-between items-start mb-8">
-      <div>
-        <h1 className="text-3xl md:text-4xl font-bold text-yellow-400 mb-2">
-          Dashboard Admin
-        </h1>
-        <p className="text-sm md:text-lg text-gray-300">
-          Gérez vos quiz et analysez les performances
-        </p>
-      </div>
-      {/* Bouton hamburger pour mobile */}
-      <div className="md:hidden">
-        <button
-          onClick={toggleMobileMenu}
-          className="text-white focus:outline-none"
-        >
-          {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </button>
-      </div>
     
-      <div className="hidden md:flex gap-4">
-        <ActionButtons />
-      </div>
-    </div>
-  );
-
-  const MobileMenu = () => {
-    if (!isMobileMenuOpen) return null;
-    
-    return (
-      <div className="md:hidden bg-gray-800 p-4 rounded-lg space-y-4 mb-6">
-        <ActionButtons isFullWidth />
-      </div>
-    );
+    setLoadingQuizId(null);
   };
 
   useEffect(() => {
-    fetchQuizzes();
-  }, [fetchQuizzes]);
+    loadQuizzes();
+  }, []);
+
+  const buttonClass = "bg-white hover:bg-gray-100 text-gray-900 border border-gray-300 px-6 py-3";
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6">
-      <Header />
-      <MobileMenu />
+      <div className="flex justify-between items-start mb-8">
+        <div>
+          <h1 className="text-3xl md:text-4xl font-bold text-yellow-400 mb-2">
+            Dashboard Admin
+          </h1>
+          <p className="text-sm md:text-lg text-gray-300">
+            Gérez vos quiz et analysez les performances
+          </p>
+        </div>
+        
+        <div className="md:hidden">
+          <button 
+            onClick={() => setShowMobileMenu(!showMobileMenu)} 
+            className="text-white focus:outline-none"
+          >
+            {showMobileMenu ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+        </div>
+      
+        <div className="hidden md:flex gap-4">
+          <Button onClick={() => navigate("/create-quiz")} className={buttonClass}>
+            <Plus className="w-4 h-4 mr-2" />
+            Créer un quiz
+          </Button>
+          <Button onClick={() => navigate("/student")} className={buttonClass}>
+            <User className="w-4 h-4 mr-2" />
+            Espace Élève
+          </Button>
+          <Button onClick={logout} className={buttonClass}>
+            <LogOut className="w-4 h-4 mr-2" />
+            Déconnexion
+          </Button>
+        </div>
+      </div>
+
+      {showMobileMenu && (
+        <div className="md:hidden bg-gray-800 p-4 rounded-lg space-y-4 mb-6">
+          <Button onClick={() => navigate("/create-quiz")} className={`${buttonClass} w-full`}>
+            <Plus className="w-4 h-4 mr-2" />
+            Créer un quiz
+          </Button>
+          <Button onClick={() => navigate("/student")} className={`${buttonClass} w-full`}>
+            <User className="w-4 h-4 mr-2" />
+            Espace Élève
+          </Button>
+          <Button onClick={logout} className={`${buttonClass} w-full`}>
+            <LogOut className="w-4 h-4 mr-2" />
+            Déconnexion
+          </Button>
+        </div>
+      )}
+
       <MetricsDashboard metrics={metrics} />
       <ListeQuiz
         quizzes={quizzes}

@@ -135,13 +135,13 @@ class QuizManagementService
     {
         $data = [
             'id' => $questionnaire->getId(),
-            'titre' => $questionnaire->getTitre(),
+            'title' => $questionnaire->getTitre(),
             'description' => $questionnaire->getDescription(),
-            'codeAcces' => $questionnaire->getCodeAcces(),
-            'estActif' => $questionnaire->isActive(),
-            'estDemarre' => $questionnaire->isStarted(),
+            'accessCode' => $questionnaire->getCodeAcces(),
+            'isActive' => $questionnaire->isActive(),
+            'isStarted' => $questionnaire->isStarted(),
             'scorePassage' => $questionnaire->getScorePassage(),
-            'dateCreation' => $questionnaire->getDateCreation()?->format('c'),
+            'createdAt' => $questionnaire->getDateCreation()?->format('c'),
             'nbQuestions' => $questionnaire->getQuestions()->count(),
         ];
 

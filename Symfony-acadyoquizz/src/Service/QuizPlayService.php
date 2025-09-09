@@ -50,8 +50,8 @@ class QuizPlayService
      * Soumet un quiz et calcule les résultats
      */
     public function submitQuiz(
-        Questionnaire $questionnaire, 
-        array $answers, 
+        Questionnaire $questionnaire,
+        array $answers,
         Utilisateur $user,
         ?string $firstName = null,
         ?string $lastName = null
@@ -62,7 +62,7 @@ class QuizPlayService
         $tentative->setUtilisateur($user);
         $tentative->setDateDebut(new \DateTimeImmutable());
         $tentative->setDateFin(new \DateTimeImmutable());
-        
+
         // Utiliser les informations utilisateur ou les noms fournis
         $tentative->setPrenomParticipant($firstName ?? $user->getFirstName() ?? 'Utilisateur');
         $tentative->setNomParticipant($lastName ?? $user->getLastName() ?? 'Connecté');
@@ -78,7 +78,7 @@ class QuizPlayService
         // Traiter chaque question
         foreach ($answersByQuestion as $questionId => $selectedAnswerIds) {
             $question = $this->questionRepository->findQuestionInQuestionnaire($questionId, $questionnaire->getId());
-            
+
             if (!$question) {
                 continue;
             }
@@ -88,7 +88,7 @@ class QuizPlayService
             // Créer les réponses utilisateur
             foreach ($selectedAnswerIds as $answerId) {
                 $reponse = $this->findAnswerInQuestion($question, $answerId);
-                
+
                 if ($reponse) {
                     $reponseUtilisateur = new ReponseUtilisateur();
                     $reponseUtilisateur->setTentativeQuestionnaire($tentative);
@@ -107,7 +107,7 @@ class QuizPlayService
         // Finaliser la tentative
         $tentative->setScore($score);
         $tentative->setNombreTotalQuestions($totalQuestions);
-        
+
         $this->entityManager->flush();
 
         // Calculer les résultats
@@ -130,7 +130,7 @@ class QuizPlayService
     public function getTentativeResults(int $tentativeId, Utilisateur $user): ?array
     {
         $tentative = $this->tentativeRepository->findOneByIdAndUser($tentativeId, $user);
-        
+
         if (!$tentative) {
             return null;
         }
@@ -163,7 +163,7 @@ class QuizPlayService
                     'id' => $reponse->getId(),
                     'texte' => $reponse->getTexte(),
                     'numeroOrdre' => $reponse->getNumeroOrdre()
-                    // Pas de 'estCorrecte' pour ne pas révéler les réponses !
+
                 ];
             }
 
@@ -253,7 +253,7 @@ class QuizPlayService
         foreach ($tentative->getReponsesUtilisateur() as $reponseUtilisateur) {
             $question = $reponseUtilisateur->getQuestion();
             $questionId = $question->getId();
-            
+
             if (!isset($details[$questionId])) {
                 $details[$questionId] = [
                     'question' => $question,
