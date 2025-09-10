@@ -21,58 +21,52 @@ namespace App\Tests\Controller;
 use App\Entity\Questionnaire;
 use App\Entity\Utilisateur;
 use Doctrine\ORM\EntityManagerInterface;
+use App\Tests\DatabaseTestTrait;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Response;
 
 class QuizManagementControllerTest extends WebTestCase
 {
+    use DatabaseTestTrait;
     private $client;
     private EntityManagerInterface $entityManager;
 
     protected function setUp(): void
     {
         parent::setUp();
+        static::ensureKernelShutdown();
         $this->client = static::createClient();
         $this->entityManager = $this->client->getContainer()->get('doctrine')->getManager();
-
-        // Charger les fixtures AppFixtures
-        $loader = new \Doctrine\Common\DataFixtures\Loader();
-        $loader->addFixture(new \App\DataFixtures\AppFixtures());
-        $purger = new \Doctrine\Common\DataFixtures\Purger\ORMPurger($this->entityManager);
-        $executor = new \Doctrine\Common\DataFixtures\Executor\ORMExecutor($this->entityManager, $purger);
-        $executor->purge();
-        $executor->execute($loader->getFixtures());
+        // Purge simple (évite les verrous/fixtures lourdes)
+        $this->clearDatabase($this->entityManager);
+        $this->entityManager->clear();
     }
 
     protected function tearDown(): void
     {
         parent::tearDown();
-
-        // Nettoyer la base de données
-        $connection = $this->entityManager->getConnection();
-        $connection->executeStatement('SET FOREIGN_KEY_CHECKS = 0');
-        $connection->executeStatement('DELETE FROM questionnaire');
-        $connection->executeStatement('DELETE FROM utilisateur');
-        $connection->executeStatement('SET FOREIGN_KEY_CHECKS = 1');
-
-        $this->entityManager->close();
+        if ($this->entityManager !== null) {
+            $this->entityManager->clear();
+            $this->entityManager->close();
+        }
+        static::ensureKernelShutdown();
     }
 
     private function createTestUser(string $email = null): Utilisateur
     {
-        // Création d'un email unique si non fourni
         if ($email === null) {
             $email = 'test_' . uniqid() . '@example.com';
         }
-
+        $hasher = static::getContainer()->get(UserPasswordHasherInterface::class);
         $user = new Utilisateur();
         $user->setEmail($email);
         $user->setRoles(['ROLE_USER']);
-        $user->setPassword('password123'); // Ajout d'un mot de passe pour éviter l'erreur de contrainte NULL
-
+        $user->setFirstName('QA');
+        $user->setLastName('User');
+        $user->setPassword($hasher->hashPassword($user, 'password123'));
         $this->entityManager->persist($user);
         $this->entityManager->flush();
-
         return $user;
     }
 
@@ -86,14 +80,10 @@ class QuizManagementControllerTest extends WebTestCase
         $quiz->setScorePassage($data['scorePassage'] ?? 70);
         $quiz->setCreePar($creator);
         $quiz->setDateCreation(new \DateTimeImmutable());
-
-        // Générer un code d'accès unique
-        $code = strtoupper(substr(str_shuffle('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'), 0, 6));
-        $quiz->setCodeAcces($code);
-
+        // code accès via entité (généré au constructeur), mais on assure unicité
+        $quiz->regenererCodeAcces();
         $this->entityManager->persist($quiz);
         $this->entityManager->flush();
-
         return $quiz;
     }
 
@@ -147,7 +137,7 @@ class QuizManagementControllerTest extends WebTestCase
 
         $content = json_decode($this->client->getResponse()->getContent(), true);
         $this->assertEquals($quiz->getId(), $content['id']);
-        $this->assertEquals('Quiz Item Test', $content['titre']);
+        $this->assertEquals('Quiz Item Test', $content['title']);
 
         echo " Test GET item success : PASS\n";
     }
@@ -228,9 +218,9 @@ class QuizManagementControllerTest extends WebTestCase
         $content = json_decode($this->client->getResponse()->getContent(), true);
 
         $this->assertArrayHasKey('id', $content);
-        $this->assertEquals('Nouveau Quiz Controller', $content['titre']);
+        $this->assertEquals('Nouveau Quiz Controller', $content['title']);
         $this->assertEquals('Description du nouveau quiz', $content['description']);
-        $this->assertTrue($content['estActif']);
+        $this->assertTrue($content['isActive']);
         $this->assertEquals(75, $content['scorePassage']);
 
         echo " Test POST quiz success : PASS\n";
@@ -335,9 +325,9 @@ class QuizManagementControllerTest extends WebTestCase
 
         $content = json_decode($this->client->getResponse()->getContent(), true);
 
-        $this->assertEquals('Quiz Modifié Controller', $content['titre']);
+        $this->assertEquals('Quiz Modifié Controller', $content['title']);
         $this->assertEquals('Description modifiée', $content['description']);
-        $this->assertFalse($content['estActif']);
+        $this->assertFalse($content['isActive']);
         $this->assertEquals(80, $content['scorePassage']);
 
         echo " Test PUT quiz success : PASS\n";

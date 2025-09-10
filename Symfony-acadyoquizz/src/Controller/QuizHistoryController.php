@@ -33,7 +33,7 @@ class QuizHistoryController extends AbstractController
     /**
      * Récupérer les détails d'une tentative spécifique
      */
-    #[Route('/{attemptId}', name: 'quiz_history_item', methods: ['GET'])]
+    #[Route('/{attemptId<\d+>}', name: 'quiz_history_item', methods: ['GET'])]
     #[IsGranted('ROLE_USER')]
     public function getAttemptDetails(int $attemptId): JsonResponse
     {
